@@ -27,44 +27,51 @@ async def serve_frontend(request: Request):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    client = openai.OpenAI(api_key=OPENAI_API_KEY)
     
     try:
-        # Step 1: Create ephemeral session for Realtime API
-        session = client.beta.realtime.sessions.create(
-            model=REALTIME_MODEL,
-            voice="echo",  # Choose from: alloy, echo, fable, onyx, nova, shimmer
-            assistant_id=ASSISTANT_ID  # Your custom assistant
-        )
-
-        # Step 2: Connect to Realtime API WebSocket
-        async with openai.OpenAI(api_key=OPENAI_API_KEY).beta.realtime.connect(
-            session_id=session.id,
-            assistant_id=ASSISTANT_ID
-        ) as realtime_connection:
-
-            # Step 3: Forward messages between client and Realtime API
-            while True:
-                # Receive from client (browser)
-                client_data = await websocket.receive_text()
-                await realtime_connection.send(json.dumps({
-                    "type": "user_message",
-                    "content": client_data
-                }))
-
-                # Stream responses from Assistant
-                async for event in realtime_connection:
-                    if event["type"] == "assistant_message":
-                        await websocket.send_text(json.dumps({
-                            "type": "assistant_audio",
-                            "audio": event["audio"]  # Base64 encoded audio
-                        }))
-                    elif event["type"] == "transcript":
-                        await websocket.send_text(json.dumps({
-                            "type": "transcript",
-                            "text": event["text"]
-                        }))
-
+        # Initialize client with just the API key
+        client = openai.OpenAI(api_key=OPENAI_API_KEY)
+        
+        # Create thread with your assistant
+        thread = client.beta.threads.create()
+        
+        while True:
+            # Receive message from client
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            
+            # Add message to thread
+            client.beta.threads.messages.create(
+                thread_id=thread.id,
+                role="user",
+                content=message["content"]
+            )
+            
+            # Create run with streaming
+            stream = client.beta.threads.runs.create(
+                thread_id=thread.id,
+                assistant_id=ASSISTANT_ID,
+                stream=True
+            )
+            
+            # Stream responses
+            full_response = ""
+            for event in stream:
+                if event.event == "thread.message.delta":
+                    for delta in event.data.delta.content:
+                        if delta.type == "text":
+                            text = delta.text.value
+                            full_response += text
+                            await websocket.send_text(json.dumps({
+                                "type": "partial_response",
+                                "content": text
+                            }))
+            
+            await websocket.send_text(json.dumps({
+                "type": "final_response",
+                "content": full_response
+            }))
+            
     except Exception as e:
         await websocket.send_text(json.dumps({
             "type": "error",
