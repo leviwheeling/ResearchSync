@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto max-w-3xl p-4 flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="py-6 border-b border-gray-700">
+            <h1 class="text-3xl font-bold text-center text-blue-400">Research Assistant</h1>
+            <p class="text-center text-gray-400 mt-2">Real-time voice conversation with your AI</p>
+        </header>
+
+        <!-- Chat Container -->
+        <div id="chat-container" class="flex-1 my-4 p-4 bg-gray-800 rounded-lg overflow-y-auto space-y-4">
+            <div id="messages"></div>
+            <div id="status" class="text-center text-gray-400 text-sm py-2">
+                <span id="connection-status">Connecting...</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="mt-auto pb-6">
+            <!-- Voice Button -->
+            <div class="flex justify-center">
+                <button id="voice-button" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 focus:outline-none">
+                    <i class="fas fa-microphone text-2xl"></i>
+                </button>
+            </div>
+            <p id="voice-status" class="text-center text-gray-400 mt-2">Press and hold to speak</p>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

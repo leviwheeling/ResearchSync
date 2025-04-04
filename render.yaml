@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: research-assistant
+    env: python
+    buildCommand: |
+      pip install -r app/requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_API_KEY
+        fromSecret: openai_api_key
