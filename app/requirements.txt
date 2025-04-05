@@ -1,5 +1,5 @@
 fastapi==0.110.0
 uvicorn[standard]==0.29.0
-openai==1.14.2
+openai>=1.16.1  # Or specify the latest version, e.g., openai==1.30.0
 python-multipart==0.0.9
 aiofiles==23.2.1
