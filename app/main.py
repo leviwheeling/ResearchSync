@@ -8,8 +8,8 @@ from tempfile import NamedTemporaryFile
 from openai import OpenAI
 
 # Initialize OpenAI client
-client = OpenAI()
-
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Ensure the OpenAI API key is set
 # Load API config
 ASSISTANT_ID = os.getenv("ASSISTANT_ID", "asst_F5NLC8GjoWIo6vBG903g53JJ")
 
