@@ -6,13 +6,22 @@ import base64
 import tempfile
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 import openai
 from dotenv import load_dotenv
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
 app = FastAPI()
+
+# Serve static files from app/static
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Configuration
@@ -30,7 +39,7 @@ class ConnectionManager:
         conn_id = id(websocket)
         self.active_connections[conn_id] = websocket
         self.audio_buffers[conn_id] = b''
-        logging.info(f"Connected: {conn_id}")
+        logger.info(f"Connected: {conn_id}")
         return conn_id
 
     async def disconnect(self, conn_id: str):
@@ -38,7 +47,7 @@ class ConnectionManager:
             del self.active_connections[conn_id]
         if conn_id in self.audio_buffers:
             del self.audio_buffers[conn_id]
-        logging.info(f"Disconnected: {conn_id}")
+        logger.info(f"Disconnected: {conn_id}")
 
     async def process_audio(self, websocket: WebSocket, audio_data: bytes):
         try:
@@ -83,7 +92,7 @@ class ConnectionManager:
                 await websocket.send_bytes(speech.content)
                 
         except Exception as e:
-            logging.error(f"Processing error: {str(e)}")
+            logger.error(f"Processing error: {str(e)}")
             try:
                 await websocket.send_json({
                     "type": "error",
@@ -118,7 +127,7 @@ async def websocket_endpoint(websocket: WebSocket):
             except WebSocketDisconnect:
                 break
             except Exception as e:
-                logging.error(f"Connection error: {str(e)}")
+                logger.error(f"Connection error: {str(e)}")
                 break
                 
     finally:
@@ -130,4 +139,4 @@ async def get_index():
 
 @app.on_event("startup")
 async def startup():
-    logging.info("GPT-4o Assistant Ready")
+    logger.info("GPT-4o Assistant Ready")
