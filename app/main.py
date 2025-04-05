@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import FileResponse, StreamingResponse, JSONResponse  # Import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from tempfile import NamedTemporaryFile
 from openai import OpenAI
@@ -11,8 +11,12 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-ASSISTANT_ID = os.getenv("ASSISTANT_ID", "your-assistant-id-here")  # Replace with actual ID
+ASSISTANT_ID = os.getenv("ASSISTANT_ID", "asst_F5NLC8GjoWIo6vBG903g53JJ")  # Default to provided ID
 thread_store = {}
+
+# Validate ASSISTANT_ID at startup
+if not ASSISTANT_ID or not ASSISTANT_ID.startswith("asst_"):
+    raise ValueError("ASSISTANT_ID must be set and start with 'asst_'")
 
 @app.get("/")
 async def serve_index():
@@ -53,10 +57,13 @@ async def chat_audio(file: UploadFile = File(...), session_id: str = Form(...)):
             )
 
             # Run Assistant and get response
-            run = client.beta.threads.runs.create_and_poll(
-                thread_id=thread_store[session_id],
-                assistant_id=ASSISTANT_ID
-            )
+            try:
+                run = client.beta.threads.runs.create_and_poll(
+                    thread_id=thread_store[session_id],
+                    assistant_id=ASSISTANT_ID
+                )
+            except client.error.BadRequestError as e:
+                return JSONResponse({"error": f"Invalid assistant_id: {str(e)}"}, status_code=400)
 
             if run.status != "completed":
                 return JSONResponse({"error": "Assistant failed to respond"}, status_code=500)
