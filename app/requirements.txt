@@ -1,5 +1,5 @@
-fastapi==0.109.0
-openai>=1.0.0,<2.0.0  # Critical: Must be v1.x
-uvicorn==0.27.0
-python-dotenv==1.0.0
-websockets==12.0
+fastapi==0.110.0
+uvicorn==0.29.0
+openai==1.16.1
+python-multipart==0.0.9
+aiofiles==23.2.1
