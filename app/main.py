@@ -1,4 +1,3 @@
-# app/main.py
 import os
 import uuid
 from fastapi import FastAPI, UploadFile, File, Form
@@ -8,9 +7,10 @@ from tempfile import NamedTemporaryFile
 from openai import OpenAI
 from openai._base_client import SyncHttpxClientWrapper
 
-# 🔐 Safe client initialization (avoids proxy bug)
+# ✅ Safe + V2 client
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
+    default_headers={"OpenAI-Beta": "assistants=v2"},
     http_client=SyncHttpxClientWrapper()
 )
 
@@ -18,15 +18,16 @@ ASSISTANT_ID = os.getenv("ASSISTANT_ID", "asst_F5NLC8GjoWIo6vBG903g53JJ")
 
 app = FastAPI()
 
-# Serve static frontend
+# Static serving
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.get("/")
-def serve_index():
+def index():
     return FileResponse("app/static/index.html")
 
-# Session storage for threads
+# Thread session store
 thread_store = {}
+
 
 @app.post("/chat/audio")
 async def chat_audio(file: UploadFile = File(...), session_id: str = Form(...)):
