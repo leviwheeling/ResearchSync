@@ -88,7 +88,7 @@ async def chat_audio(file: UploadFile = File(...), session_id: str = Form(...)):
             print(f"Assistant reply (sanitized): {assistant_reply_sanitized}")
 
             # Generate TTS with sanitized reply
-            tts_response = client.audio.speech.create)(
+            tts_response = client.audio.speech.create(
                 model="tts-1",
                 voice="nova",
                 input=assistant_reply_sanitized
