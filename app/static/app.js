@@ -22,7 +22,7 @@ recordBtn.addEventListener('click', async () => {
       formData.append('file', audioBlob, 'recording.webm');
       formData.append('session_id', sessionId);
 
-      statusText.textContent = 'Transcribing & thinking... 🔄';
+      statusText.textContent = 'Thinking... 🤖';
       assistantText.classList.add('hidden');
       responseAudio.classList.add('hidden');
 
@@ -32,35 +32,37 @@ recordBtn.addEventListener('click', async () => {
           body: formData
         });
 
-        if (!response.ok) {
-          statusText.textContent = `Server error: ${response.status}`;
+        const contentType = response.headers.get("Content-Type");
+        if (!response.ok || !contentType || !contentType.includes("audio")) {
+          statusText.textContent = `⚠️ Error: ${response.status}`;
+          const errText = await response.text();
+          console.error("Non-audio response:", errText);
           return;
         }
 
-        // Read custom header for transcript if returned
-        const assistantReply = response.headers.get('X-Transcript') || '';
+        const assistantReply = response.headers.get("X-Transcript") || "";
         if (assistantReply) {
           assistantText.textContent = `"${assistantReply}"`;
-          assistantText.classList.remove('hidden');
+          assistantText.classList.remove("hidden");
         }
 
         const audioData = await response.blob();
         const audioUrl = URL.createObjectURL(audioData);
         responseAudio.src = audioUrl;
-        responseAudio.classList.remove('hidden');
-        responseAudio.play();
+        responseAudio.classList.remove("hidden");
+        await responseAudio.play();
 
-        statusText.textContent = 'Assistant response:';
+        statusText.textContent = "✅ Response ready.";
       } catch (err) {
-        console.error(err);
-        statusText.textContent = '⚠️ Connection failed.';
+        console.error("Error sending audio:", err);
+        statusText.textContent = "❌ Failed to get response.";
       }
     };
 
     mediaRecorder.start();
-    statusText.textContent = '🎙️ Listening... click again to stop';
+    statusText.textContent = '🎙️ Recording... click again to stop';
   } else {
     mediaRecorder.stop();
-    statusText.textContent = '⌛ Processing...';
+    statusText.textContent = '⏳ Uploading...';
   }
 });
