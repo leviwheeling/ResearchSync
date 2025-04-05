@@ -1,4 +1,5 @@
 import os
+import re
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,7 +12,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-ASSISTANT_ID = os.getenv("ASSISTANT_ID", "asst_F5NLC8GjoWIo6vBG903g53JJ")  # Default to provided ID
+ASSISTANT_ID = os.getenv("ASSISTANT_ID", "asst_F5NLC8GjoWIo6vBG903g53JJ")
 thread_store = {}
 
 # Validate ASSISTANT_ID at startup
@@ -21,6 +22,13 @@ if not ASSISTANT_ID or not ASSISTANT_ID.startswith("asst_"):
 @app.get("/")
 async def serve_index():
     return FileResponse("app/static/index.html")
+
+@app.get("/favicon.ico")
+async def serve_favicon():
+    favicon_path = "app/static/favicon.ico"
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    return JSONResponse({"error": "Favicon not found"}, status_code=404)
 
 @app.post("/chat/audio")
 async def chat_audio(file: UploadFile = File(...), session_id: str = Form(...)):
@@ -70,23 +78,31 @@ async def chat_audio(file: UploadFile = File(...), session_id: str = Form(...)):
 
             messages = client.beta.threads.messages.list(thread_id=thread_store[session_id])
             assistant_reply = messages.data[0].content[0].text.value.strip()
-            print(f"Assistant reply: {assistant_reply}")
+            print(f"Assistant reply (raw): {assistant_reply}")
 
             if not assistant_reply:
                 return JSONResponse({"error": "Empty assistant response"}, status_code=500)
 
-            # Generate TTS
-            tts_response = client.audio.speech.create(
+            # Sanitize reply: Replace Unicode citation markers with simple [number]
+            assistant_reply_sanitized = re.sub(r'[【]([\d]+)[】]', r'[\1]', assistant_reply)
+            print(f"Assistant reply (sanitized): {assistant_reply_sanitized}")
+
+            # Generate TTS with sanitized reply
+            tts_response = client.audio.speech.create)(
                 model="tts-1",
                 voice="nova",
-                input=assistant_reply
+                input=assistant_reply_sanitized
             )
 
             # Stream audio response
+            def generate_audio():
+                for chunk in tts_response.iter_bytes():
+                    yield chunk
+
             return StreamingResponse(
-                tts_response.iter_bytes(),
+                generate_audio(),
                 media_type="audio/mpeg",
-                headers={"X-Transcript": assistant_reply}
+                headers={"X-Transcript": assistant_reply_sanitized.encode("utf-8").decode("utf-8")}
             )
 
         finally:
@@ -94,6 +110,9 @@ async def chat_audio(file: UploadFile = File(...), session_id: str = Form(...)):
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
+    except UnicodeEncodeError as e:
+        print(f"Unicode error: {str(e)}")
+        return JSONResponse({"error": "Response contains unsupported characters"}, status_code=500)
     except Exception as e:
         print(f"Error: {str(e)}")
         traceback.print_exc()
