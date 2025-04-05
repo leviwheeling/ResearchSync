@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse  # Import FileResponse
 from fastapi.staticfiles import StaticFiles
 from tempfile import NamedTemporaryFile
 from openai import OpenAI
@@ -9,7 +9,7 @@ import traceback
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# Initialize OpenAI client with minimal configuration
+# Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 ASSISTANT_ID = os.getenv("ASSISTANT_ID", "your-assistant-id-here")  # Replace with actual ID
 thread_store = {}
