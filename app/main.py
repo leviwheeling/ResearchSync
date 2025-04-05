@@ -4,26 +4,21 @@ import logging
 import asyncio
 import base64
 import tempfile
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse
 import openai
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = FastAPI()
-
-# Serve static files from app/static
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 VAD_THRESHOLD = 500  # Medium sensitivity
-
-@app.get("/")
-async def get_index():
-    return FileResponse("app/static/index.html")
+MAX_AUDIO_SIZE = 10 * 1024 * 1024  # 10MB
 
 class ConnectionManager:
     def __init__(self):
@@ -32,14 +27,26 @@ class ConnectionManager:
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        self.active_connections[id(websocket)] = websocket
-        self.audio_buffers[id(websocket)] = b''
+        conn_id = id(websocket)
+        self.active_connections[conn_id] = websocket
+        self.audio_buffers[conn_id] = b''
+        logging.info(f"Connected: {conn_id}")
+        return conn_id
+
+    async def disconnect(self, conn_id: str):
+        if conn_id in self.active_connections:
+            del self.active_connections[conn_id]
+        if conn_id in self.audio_buffers:
+            del self.audio_buffers[conn_id]
+        logging.info(f"Disconnected: {conn_id}")
 
     async def process_audio(self, websocket: WebSocket, audio_data: bytes):
         try:
+            if len(audio_data) > MAX_AUDIO_SIZE:
+                raise ValueError("Audio too large")
+                
             client = openai.OpenAI(api_key=OPENAI_API_KEY)
             
-            # Save to temp file for GPT-4o processing
             with tempfile.NamedTemporaryFile(suffix=".webm") as tmp:
                 tmp.write(audio_data)
                 tmp.flush()
@@ -76,33 +83,51 @@ class ConnectionManager:
                 await websocket.send_bytes(speech.content)
                 
         except Exception as e:
-            logging.error(f"Error: {str(e)}")
-            await websocket.send_json({
-                "type": "error",
-                "message": str(e)
-            })
+            logging.error(f"Processing error: {str(e)}")
+            try:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": str(e)
+                })
+            except:
+                pass
 
 manager = ConnectionManager()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+    conn_id = await manager.connect(websocket)
+    
     try:
         while True:
-            data = await websocket.receive()
-            
-            if data["type"] == "websocket.receive.bytes":
-                manager.audio_buffers[id(websocket)] += data["bytes"]
+            try:
+                data = await websocket.receive()
                 
-            elif data["type"] == "websocket.receive.text":
-                message = json.loads(data["text"])
-                if message.get("type") == "process_audio":
-                    await manager.process_audio(
-                        websocket,
-                        manager.audio_buffers[id(websocket)]
-                    )
-                    manager.audio_buffers[id(websocket)] = b''
+                if data.get("type") == "websocket.receive.bytes":
+                    manager.audio_buffers[conn_id] += data["bytes"]
                     
-    except WebSocketDisconnect:
-        del manager.active_connections[id(websocket)]
-        del manager.audio_buffers[id(websocket)]
+                elif data.get("type") == "websocket.receive.text":
+                    message = json.loads(data["text"])
+                    if message.get("type") == "process_audio":
+                        await manager.process_audio(
+                            websocket,
+                            manager.audio_buffers[conn_id]
+                        )
+                        manager.audio_buffers[conn_id] = b''
+                        
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                logging.error(f"Connection error: {str(e)}")
+                break
+                
+    finally:
+        await manager.disconnect(conn_id)
+
+@app.get("/")
+async def get_index():
+    return FileResponse("app/static/index.html")
+
+@app.on_event("startup")
+async def startup():
+    logging.info("GPT-4o Assistant Ready")
