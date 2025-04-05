@@ -83,8 +83,11 @@ async def chat_audio(file: UploadFile = File(...), session_id: str = Form(...)):
             if not assistant_reply:
                 return JSONResponse({"error": "Empty assistant response"}, status_code=500)
 
-            # Sanitize reply: Replace Unicode citation markers with simple [number]
-            assistant_reply_sanitized = re.sub(r'[【]([\d]+)[】]', r'[\1]', assistant_reply)
+            # Sanitize reply: Remove [n], 【...】, and non-ASCII characters
+            assistant_reply_sanitized = re.sub(r'\[\d+\]', '', assistant_reply)  # Remove [n]
+            assistant_reply_sanitized = re.sub(r'【.*?】', '', assistant_reply_sanitized)  # Remove 【...】
+            assistant_reply_sanitized = assistant_reply_sanitized.replace("’", "'")  # Replace curly apostrophe with straight
+            assistant_reply_sanitized = re.sub(r'[^a-zA-Z0-9.,!? ]', '', assistant_reply_sanitized)  # Keep only basic chars
             print(f"Assistant reply (sanitized): {assistant_reply_sanitized}")
 
             # Generate TTS with sanitized reply
@@ -102,7 +105,7 @@ async def chat_audio(file: UploadFile = File(...), session_id: str = Form(...)):
             return StreamingResponse(
                 generate_audio(),
                 media_type="audio/mpeg",
-                headers={"X-Transcript": assistant_reply_sanitized.encode("utf-8").decode("utf-8")}
+                headers={"X-Transcript": assistant_reply_sanitized}
             )
 
         finally:
@@ -110,9 +113,6 @@ async def chat_audio(file: UploadFile = File(...), session_id: str = Form(...)):
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
-    except UnicodeEncodeError as e:
-        print(f"Unicode error: {str(e)}")
-        return JSONResponse({"error": "Response contains unsupported characters"}, status_code=500)
     except Exception as e:
         print(f"Error: {str(e)}")
         traceback.print_exc()
