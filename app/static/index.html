@@ -9,9 +9,9 @@
   <style>
     /* Gradient Background Animation */
     .bg-gradient-animated {
-      background: linear-gradient(135deg, #1a1a1a, #ff6200, #1a1a1a);
-      background-size: 200% 200%;
-      animation: gradientShift 20s ease infinite;
+      background: linear-gradient(135deg, #000000, #ff6200, #1a1a1a);
+      background-size: 300% 300%;
+      animation: gradientShift 15s ease infinite;
     }
     @keyframes gradientShift {
       0% { background-position: 0% 0%; }
@@ -92,7 +92,7 @@
 
     <!-- Status and Response -->
     <div class="absolute bottom-8 flex flex-col items-center space-y-4 w-full max-w-md">
-      <p id="status" class="text-sm font-medium text-gray-300 tracking-wide">Click to Talk</p>
+      <p id="status" class="text-sm font-medium text-gray-300 tracking-wide">Hold Space or Click to Talk</p>
       <div id="thinking" class="hidden text-orange-500 text-lg font-semibold">
         Thinking<span class="thinking-dot">.</span><span class="thinking-dot">.</span><span class="thinking-dot">.</span>
       </div>
@@ -110,38 +110,5 @@
 
   <!-- Background Overlay for Depth -->
   <div class="absolute inset-0 pointer-events-none bg-black/20 z-0"></div>
-
-  <script>
-    // Add recording class to mic button
-    const recordBtn = document.getElementById('recordBtn');
-    const statusText = document.getElementById('status');
-    const thinking = document.getElementById('thinking');
-    recordBtn.addEventListener('click', () => {
-      if (!recordBtn.classList.contains('recording')) {
-        recordBtn.classList.add('recording');
-        statusText.classList.add('hidden');
-        thinking.classList.remove('hidden');
-      } else {
-        recordBtn.classList.remove('recording');
-        thinking.classList.add('hidden');
-        statusText.classList.remove('hidden');
-      }
-    });
-
-    // Particle Animation
-    const particlesContainer = document.getElementById('particles');
-    function createParticle() {
-      const particle = document.createElement('div');
-      particle.classList.add('particle');
-      const size = Math.random() * 5 + 2;
-      particle.style.width = `${size}px`;
-      particle.style.height = `${size}px`;
-      particle.style.left = `${Math.random() * 100}vw`;
-      particle.style.animationDuration = `${Math.random() * 5 + 5}s`;
-      particlesContainer.appendChild(particle);
-      setTimeout(() => particle.remove(), 10000);
-    }
-    setInterval(createParticle, 500);
-  </script>
 </body>
 </html>

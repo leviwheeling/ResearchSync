@@ -2,13 +2,28 @@ const recordBtn = document.getElementById('recordBtn');
 const statusText = document.getElementById('status');
 const responseAudio = document.getElementById('responseAudio');
 const assistantText = document.getElementById('assistantText');
+const thinking = document.getElementById('thinking');
 
 let mediaRecorder;
 let audioChunks = [];
 const sessionId = sessionStorage.getItem('session_id') || crypto.randomUUID();
 sessionStorage.setItem('session_id', sessionId);
 
-recordBtn.addEventListener('click', async () => {
+// Mic button animation and thinking toggle
+const toggleRecordingState = (isRecording) => {
+  if (isRecording) {
+    recordBtn.classList.add('recording');
+    statusText.classList.add('hidden');
+    thinking.classList.remove('hidden');
+  } else {
+    recordBtn.classList.remove('recording');
+    thinking.classList.add('hidden');
+    statusText.classList.remove('hidden');
+  }
+};
+
+// Recording logic
+const startRecording = async () => {
   try {
     if (!mediaRecorder || mediaRecorder.state === 'inactive') {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -23,7 +38,7 @@ recordBtn.addEventListener('click', async () => {
         formData.append('file', audioBlob, 'recording.webm');
         formData.append('session_id', sessionId);
 
-        statusText.textContent = 'Thinking... 🤖';
+        statusText.textContent = 'Thinking...';
         assistantText.classList.add('hidden');
         responseAudio.classList.add('hidden');
 
@@ -54,18 +69,65 @@ recordBtn.addEventListener('click', async () => {
         responseAudio.classList.remove('hidden');
         await responseAudio.play();
 
-        statusText.textContent = '✅ Done';
+        statusText.textContent = 'Done';
       };
 
       mediaRecorder.start();
-      statusText.textContent = '🎙️ Recording... click to stop';
-    } else {
-      mediaRecorder.stop();
-      mediaRecorder.stream.getTracks().forEach(track => track.stop());
-      statusText.textContent = '⏳ Processing...';
+      toggleRecordingState(true);
     }
   } catch (err) {
     console.error('Error:', err);
-    statusText.textContent = `❌ Error: ${err.message}`;
+    statusText.textContent = `Error: ${err.message}`;
+    toggleRecordingState(false);
+  }
+};
+
+const stopRecording = () => {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    toggleRecordingState(false);
+  }
+};
+
+// Click to record
+recordBtn.addEventListener('click', () => {
+  if (!recordBtn.classList.contains('recording')) {
+    startRecording();
+  } else {
+    stopRecording();
   }
 });
+
+// Spacebar hold-to-talk
+let isSpaceHeld = false;
+document.addEventListener('keydown', (event) => {
+  if (event.code === 'Space' && !isSpaceHeld) {
+    event.preventDefault(); // Prevent scrolling
+    isSpaceHeld = true;
+    startRecording();
+  }
+});
+
+document.addEventListener('keyup', (event) => {
+  if (event.code === 'Space' && isSpaceHeld) {
+    event.preventDefault();
+    isSpaceHeld = false;
+    stopRecording();
+  }
+});
+
+// Particle Animation
+const particlesContainer = document.getElementById('particles');
+function createParticle() {
+  const particle = document.createElement('div');
+  particle.classList.add('particle');
+  const size = Math.random() * 5 + 2;
+  particle.style.width = `${size}px`;
+  particle.style.height = `${size}px`;
+  particle.style.left = `${Math.random() * 100}vw`;
+  particle.style.animationDuration = `${Math.random() * 5 + 5}s`;
+  particlesContainer.appendChild(particle);
+  setTimeout(() => particle.remove(), 10000);
+}
+setInterval(createParticle, 500);
