@@ -1,10 +1,12 @@
 services:
   - type: web
-    name: research-assistant
+    name: openai-voice-assistant
     env: python
-    buildCommand: |
-      pip install -r app/requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port 10000
+    plan: free
     envVars:
       - key: OPENAI_API_KEY
-        fromSecret: openai_api_key
+        sync: false
+      - key: ASSISTANT_ID
+        value: asst_F5NLC8GjoWIo6vBG903g53JJ

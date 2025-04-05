@@ -1,101 +1,66 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const voiceButton = document.getElementById('voice-button');
-    const audioVisualizer = document.getElementById('audio-visualizer');
-    const audioPlayer = new Audio();
-    let mediaRecorder;
-    let socket;
-    let isConnected = false;
+const recordBtn = document.getElementById('recordBtn');
+const statusText = document.getElementById('status');
+const responseAudio = document.getElementById('responseAudio');
+const assistantText = document.getElementById('assistantText');
 
-    // Robust WebSocket connection with reconnection
-    function connectWebSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+let mediaRecorder;
+let audioChunks = [];
+const sessionId = sessionStorage.getItem('session_id') || crypto.randomUUID();
+sessionStorage.setItem('session_id', sessionId);
 
-        socket.onopen = () => {
-            isConnected = true;
-            console.log("WebSocket connected");
-        };
+recordBtn.addEventListener('click', async () => {
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
 
-        socket.onclose = () => {
-            isConnected = false;
-            console.log("WebSocket disconnected - retrying in 3s");
-            setTimeout(connectWebSocket, 3000);
-        };
+    audioChunks = [];
+    mediaRecorder.ondataavailable = (event) => audioChunks.push(event.data);
 
-        socket.onmessage = async (event) => {
-            if (event.data instanceof Blob) {
-                // Audio response
-                const url = URL.createObjectURL(event.data);
-                audioPlayer.src = url;
-                audioPlayer.play();
-            } else {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === "text_response") {
-                        addMessage('assistant', data.content);
-                    } else if (data.type === "error") {
-                        console.error("Server error:", data.message);
-                    }
-                } catch (e) {
-                    console.error("Message parsing error:", e);
-                }
-            }
-        };
-    }
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'recording.webm');
+      formData.append('session_id', sessionId);
 
-    async function startRecording() {
-        if (!isConnected) {
-            console.error("Not connected to WebSocket");
-            return;
+      statusText.textContent = 'Transcribing & thinking... 🔄';
+      assistantText.classList.add('hidden');
+      responseAudio.classList.add('hidden');
+
+      try {
+        const response = await fetch('/chat/audio', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          statusText.textContent = `Server error: ${response.status}`;
+          return;
         }
 
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    sampleRate: 16000
-                }
-            });
-            
-            mediaRecorder = new MediaRecorder(stream, {
-                mimeType: 'audio/webm',
-                audioBitsPerSecond: 128000
-            });
-            
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0 && isConnected) {
-                    socket.send(event.data);
-                }
-            };
-            
-            mediaRecorder.onstop = () => {
-                if (isConnected) {
-                    socket.send(JSON.stringify({ type: "process_audio" }));
-                }
-            };
-            
-            mediaRecorder.start(100); // 100ms chunks
-            
-        } catch (error) {
-            console.error("Recording error:", error);
-            stopRecording();
+        // Read custom header for transcript if returned
+        const assistantReply = response.headers.get('X-Transcript') || '';
+        if (assistantReply) {
+          assistantText.textContent = `"${assistantReply}"`;
+          assistantText.classList.remove('hidden');
         }
-    }
 
-    function stopRecording() {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-            mediaRecorder.stream.getTracks().forEach(track => track.stop());
-        }
-    }
+        const audioData = await response.blob();
+        const audioUrl = URL.createObjectURL(audioData);
+        responseAudio.src = audioUrl;
+        responseAudio.classList.remove('hidden');
+        responseAudio.play();
 
-    // UI Controls
-    voiceButton.addEventListener('mousedown', startRecording);
-    voiceButton.addEventListener('mouseup', stopRecording);
-    voiceButton.addEventListener('touchstart', startRecording);
-    voiceButton.addEventListener('touchend', stopRecording);
+        statusText.textContent = 'Assistant response:';
+      } catch (err) {
+        console.error(err);
+        statusText.textContent = '⚠️ Connection failed.';
+      }
+    };
 
-    // Initialize
-    connectWebSocket();
+    mediaRecorder.start();
+    statusText.textContent = '🎙️ Listening... click again to stop';
+  } else {
+    mediaRecorder.stop();
+    statusText.textContent = '⌛ Processing...';
+  }
 });
