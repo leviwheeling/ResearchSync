@@ -2,20 +2,14 @@ import os
 import json
 import logging
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+import base64
+import tempfile
+import audioop
+from collections import deque
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
 import openai
 from dotenv import load_dotenv
-from datetime import datetime
-from typing import Dict, Optional
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -24,88 +18,109 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-ASSISTANT_ID = "asst_F5NLC8GjoWIo6vBG903g53JJ"
-MAX_MESSAGE_LENGTH = 4096  # Characters
-WEBSOCKET_TIMEOUT = 300.0  # 5 minutes
-PING_INTERVAL = 30.0  # 30 seconds
+VAD_THRESHOLD = 500  # Medium sensitivity for background noise
+VAD_WINDOW = 15      # 150ms analysis window
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-        self.thread_map: Dict[str, str] = {}  # Maps connection_id to thread_id
+        self.active_connections = {}
+        self.audio_buffers = {}
+        self.vad_states = {}  # Voice Activity Detection states
 
     async def connect(self, websocket: WebSocket, connection_id: str):
         await websocket.accept()
         self.active_connections[connection_id] = websocket
-        logger.info(f"Connection {connection_id} established")
+        self.audio_buffers[connection_id] = b''
+        self.vad_states[connection_id] = {
+            'buffer': deque(maxlen=VAD_WINDOW),
+            'speaking': False
+        }
 
-    def disconnect(self, connection_id: str):
-        if connection_id in self.active_connections:
-            del self.active_connections[connection_id]
-            if connection_id in self.thread_map:
-                del self.thread_map[connection_id]
-            logger.info(f"Connection {connection_id} removed")
+    async def process_audio_chunk(self, connection_id: str, chunk: bytes):
+        # VAD processing
+        rms = audioop.rms(chunk, 2)  # 16-bit samples
+        vad_state = self.vad_states[connection_id]
+        vad_state['buffer'].append(rms > VAD_THRESHOLD)
+        
+        # Detect voice activity (60% of window)
+        voice_detected = sum(vad_state['buffer']) / VAD_WINDOW > 0.6
+        
+        if voice_detected and not vad_state['speaking']:
+            vad_state['speaking'] = True
+            await self.active_connections[connection_id].send_json({
+                "type": "vad_status",
+                "status": "speaking"
+            })
+        elif not voice_detected and vad_state['speaking']:
+            vad_state['speaking'] = False
+            await self.handle_audio_completion(connection_id)
+            await self.active_connections[connection_id].send_json({
+                "type": "vad_status",
+                "status": "waiting"
+            })
+
+    async def handle_audio_completion(self, connection_id: str):
+        client = openai.OpenAI(api_key=OPENAI_API_KEY)
+        audio_data = self.audio_buffers.get(connection_id, b'')
+        
+        if not audio_data:
+            return
+
+        try:
+            # Stream audio to GPT-4o and get both text and audio response
+            with tempfile.NamedTemporaryFile(suffix=".webm") as tmp:
+                tmp.write(audio_data)
+                tmp.seek(0)
+                
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{
+                        "role": "user",
+                        "content": [{
+                            "type": "audio_url",
+                            "audio_url": {
+                                "url": f"data:audio/webm;base64,{base64.b64encode(audio_data).decode()}"
+                            }
+                        }]
+                    }],
+                    stream=True
+                )
+
+                full_response = ""
+                for chunk in response:
+                    if chunk.choices[0].delta.content:
+                        text = chunk.choices[0].delta.content
+                        full_response += text
+                        
+                        # Send text updates
+                        await self.active_connections[connection_id].send_json({
+                            "type": "response.delta",
+                            "content": text
+                        })
+                
+                # Get audio response
+                tts = client.audio.speech.create(
+                    model="tts-1-hd",
+                    voice="nova",
+                    input=full_response,
+                    response_format="opus"
+                )
+                
+                # Send audio response
+                await self.active_connections[connection_id].send_bytes(
+                    tts.content
+                )
+
+        except Exception as e:
+            logging.error(f"Error: {str(e)}")
+            await self.active_connections[connection_id].send_json({
+                "type": "error",
+                "message": str(e)
+            })
+        finally:
+            self.audio_buffers[connection_id] = b''
 
 manager = ConnectionManager()
-
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
-        "connections": len(manager.active_connections)
-    }
-
-@app.get("/", response_class=HTMLResponse)
-async def serve_frontend(request: Request):
-    logger.info("Serving frontend")
-    with open("app/static/index.html") as f:
-        return HTMLResponse(content=f.read())
-
-async def handle_assistant_stream(websocket: WebSocket, thread_id: str, user_input: str):
-    client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=30.0)
-    
-    try:
-        # Add user message to thread
-        message = client.beta.threads.messages.create(
-            thread_id=thread_id,
-            role="user",
-            content=user_input
-        )
-        logger.info(f"Message added to thread {thread_id}: {message.id}")
-
-        # Create and stream run
-        stream = client.beta.threads.runs.create(
-            thread_id=thread_id,
-            assistant_id=ASSISTANT_ID,
-            stream=True
-        )
-        
-        full_response = ""
-        for event in stream:
-            if event.event == "thread.message.delta":
-                for delta in event.data.delta.content:
-                    if delta.type == "text":
-                        text = delta.text.value
-                        full_response += text
-                        await websocket.send_text(json.dumps({
-                            "type": "partial_response",
-                            "content": text
-                        }))
-        
-        logger.info(f"Completed response for thread {thread_id}")
-        await websocket.send_text(json.dumps({
-            "type": "final_response",
-            "content": full_response
-        }))
-        
-    except Exception as e:
-        logger.error(f"Assistant error in thread {thread_id}: {str(e)}")
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "message": f"Assistant processing error: {str(e)}"
-        }))
-        raise
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -113,126 +128,25 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket, connection_id)
     
     try:
-        client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=30.0)
-        
-        # Create new thread for this connection
-        thread = client.beta.threads.create()
-        manager.thread_map[connection_id] = thread.id
-        logger.info(f"Created thread {thread.id} for connection {connection_id}")
-
-        await websocket.send_text(json.dumps({
-            "type": "debug",
-            "message": f"Connected to thread {thread.id}",
-            "connection_id": connection_id
-        }))
-
-        # Start ping task
-        async def send_pings():
-            while True:
-                await asyncio.sleep(PING_INTERVAL)
-                try:
-                    await websocket.send_text(json.dumps({
-                        "type": "ping",
-                        "timestamp": datetime.utcnow().isoformat()
-                    }))
-                except:
-                    break
-
-        ping_task = asyncio.create_task(send_pings())
-
         while True:
-            try:
-                # Wait for message with timeout
-                data = await asyncio.wait_for(
-                    websocket.receive_text(),
-                    timeout=WEBSOCKET_TIMEOUT
-                )
+            data = await websocket.receive()
+            
+            if isinstance(data, str):
+                message = json.loads(data)
+                if message.get("type") == "ping":
+                    continue
+                    
+            elif data.type == "websocket.receive.bytes":
+                await manager.process_audio_chunk(connection_id, data)
+                manager.audio_buffers[connection_id] += data
                 
-                try:
-                    message_data = json.loads(data)
-                except json.JSONDecodeError:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": "Invalid JSON format"
-                    }))
-                    continue
-
-                # Validate message
-                if not isinstance(message_data, dict) or not message_data.get("content"):
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": "Invalid message format"
-                    }))
-                    continue
-
-                if len(message_data["content"]) > MAX_MESSAGE_LENGTH:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": f"Message exceeds {MAX_MESSAGE_LENGTH} character limit"
-                    }))
-                    continue
-
-                # Process message
-                if message_data.get("type") == "audio":
-                    logger.info(f"Received audio message in thread {thread.id}")
-                    await websocket.send_text(json.dumps({
-                        "type": "debug",
-                        "message": "Audio processing placeholder"
-                    }))
-                else:
-                    await handle_assistant_stream(
-                        websocket,
-                        thread.id,
-                        message_data["content"]
-                    )
-
-            except asyncio.TimeoutError:
-                logger.warning(f"Connection {connection_id} timeout")
-                await websocket.send_text(json.dumps({
-                    "type": "warning",
-                    "message": "Connection timeout - sending ping"
-                }))
-                continue
-
-            except WebSocketDisconnect:
-                logger.info(f"Client {connection_id} disconnected")
-                break
-
-            except Exception as e:
-                logger.error(f"Error in connection {connection_id}: {str(e)}")
-                await websocket.send_text(json.dumps({
-                    "type": "error",
-                    "message": f"Processing error: {str(e)}"
-                }))
-                break
-
-    except Exception as e:
-        logger.error(f"Connection error {connection_id}: {str(e)}")
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "message": f"Connection error: {str(e)}"
-        }))
+    except WebSocketDisconnect:
+        logging.info(f"Client disconnected: {connection_id}")
     finally:
-        ping_task.cancel()
-        manager.disconnect(connection_id)
-        try:
-            await websocket.close()
-        except:
-            pass
-        logger.info(f"Connection {connection_id} closed")
+        del manager.active_connections[connection_id]
+        del manager.audio_buffers[connection_id]
+        del manager.vad_states[connection_id]
 
 @app.on_event("startup")
 async def startup():
-    logger.info("Starting server...")
-    try:
-        client = openai.OpenAI(api_key=OPENAI_API_KEY)
-        models = client.models.list()
-        logger.info(f"OpenAI connection verified, {len(models.data)} models available")
-        
-        # Verify assistant exists
-        assistant = client.beta.assistants.retrieve(ASSISTANT_ID)
-        logger.info(f"Assistant loaded: {assistant.name} (ID: {assistant.id})")
-        
-    except Exception as e:
-        logger.error(f"Startup verification failed: {str(e)}")
-        raise
+    logging.info("GPT-4o Assistant Ready")
