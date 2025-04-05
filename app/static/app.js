@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (socket && socket.readyState === WebSocket.OPEN) {
                         socket.send(JSON.stringify({ 
                             type: 'audio', 
-                            data: base64Audio,
+                            content: base64Audio,  // Changed from 'data' to 'content'
                             mimeType: 'audio/webm'
                         }));
                     } else {
