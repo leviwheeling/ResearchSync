@@ -8,10 +8,9 @@ from tempfile import NamedTemporaryFile
 from openai import OpenAI
 from openai._base_client import SyncHttpxClientWrapper
 
-# ✅ Safe client with Assistant v2 opt-in and no proxy bug
+# ✅ Proxy-safe + explicit Assistants v2 header via .with_options()
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
-    default_headers={"OpenAI-Beta": "assistants=v2"},
     http_client=SyncHttpxClientWrapper()
 )
 
@@ -24,54 +23,60 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 def serve_index():
     return FileResponse("app/static/index.html")
 
-# Store thread per session
 thread_store = {}
 
 @app.post("/chat/audio")
 async def chat_audio(file: UploadFile = File(...), session_id: str = Form(...)):
     try:
-        # Save audio
+        # Save audio file
         with NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
             tmp.write(await file.read())
             tmp_path = tmp.name
 
-        # Transcribe with Whisper
+        # Transcribe using Whisper
         with open(tmp_path, "rb") as audio_file:
             transcription = client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file
             )
             user_input = transcription.text.strip()
-            print(f"[DEBUG] Transcription: {user_input}")
+            print(f"[DEBUG] Transcribed: {user_input}")
 
         if not user_input:
             return JSONResponse(content={"error": "Empty transcription"}, status_code=400)
 
-        # Thread management
+        # ✅ Ensure Assistants v2 header is applied to all beta calls
+        beta_client = client.with_options(
+            default_headers={"OpenAI-Beta": "assistants=v2"}
+        )
+
+        # Create thread if needed
         if session_id not in thread_store:
-            thread = client.beta.threads.create()
+            thread = beta_client.beta.threads.create()
             thread_store[session_id] = thread.id
 
-        client.beta.threads.messages.create(
+        # Add user message
+        beta_client.beta.threads.messages.create(
             thread_id=thread_store[session_id],
             role="user",
             content=user_input
         )
 
-        run = client.beta.threads.runs.create_and_poll(
+        # Run assistant
+        run = beta_client.beta.threads.runs.create_and_poll(
             thread_id=thread_store[session_id],
             assistant_id=ASSISTANT_ID
         )
 
-        # Get response
-        messages = client.beta.threads.messages.list(thread_id=thread_store[session_id])
+        # Get reply
+        messages = beta_client.beta.threads.messages.list(thread_id=thread_store[session_id])
         reply = messages.data[0].content[0].text.value.strip()
         print(f"[DEBUG] Assistant reply: {reply}")
 
         if not reply:
             return JSONResponse(content={"error": "Empty assistant reply"}, status_code=400)
 
-        # Convert to speech
+        # TTS
         try:
             tts_audio = client.audio.speech.create(
                 model="tts-1",
@@ -79,7 +84,7 @@ async def chat_audio(file: UploadFile = File(...), session_id: str = Form(...)):
                 input=reply
             )
         except Exception as e:
-            print(f"[ERROR] TTS failed: {e}")
+            print(f"[ERROR] TTS failure: {e}")
             return JSONResponse(content={"error": "TTS failed"}, status_code=500)
 
         return StreamingResponse(

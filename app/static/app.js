@@ -52,17 +52,17 @@ recordBtn.addEventListener('click', async () => {
         responseAudio.classList.remove("hidden");
         await responseAudio.play();
 
-        statusText.textContent = "✅ Response ready.";
+        statusText.textContent = "✅ Assistant responded";
       } catch (err) {
-        console.error("Error sending audio:", err);
-        statusText.textContent = "❌ Failed to get response.";
+        console.error("Fetch failed:", err);
+        statusText.textContent = "❌ Assistant unavailable";
       }
     };
 
     mediaRecorder.start();
-    statusText.textContent = '🎙️ Recording... click again to stop';
+    statusText.textContent = '🎙️ Listening... click again to stop';
   } else {
     mediaRecorder.stop();
-    statusText.textContent = '⏳ Uploading...';
+    statusText.textContent = '⏳ Processing...';
   }
 });
