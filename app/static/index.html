@@ -2,38 +2,86 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Voice Research Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research Sync</title>
   <script defer src="/static/app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .mic-ambient {
-      box-shadow: 0 0 20px 4px rgba(255, 94, 0, 0.6);
+    /* Custom Mic Animation */
+    .mic-glow {
+      transition: all 0.3s ease;
+      box-shadow: 0 0 15px rgba(255, 94, 0, 0.5), inset 0 0 10px rgba(255, 94, 0, 0.3);
+    }
+    .mic-glow:hover {
+      box-shadow: 0 0 25px rgba(255, 94, 0, 0.8), inset 0 0 15px rgba(255, 94, 0, 0.5);
+    }
+    .mic-glow.recording {
       animation: pulse 1.5s infinite;
     }
-
     @keyframes pulse {
-      0% { box-shadow: 0 0 10px 3px rgba(255, 94, 0, 0.4); }
-      50% { box-shadow: 0 0 25px 7px rgba(255, 94, 0, 0.8); }
-      100% { box-shadow: 0 0 10px 3px rgba(255, 94, 0, 0.4); }
+      0% { box-shadow: 0 0 15px rgba(255, 94, 0, 0.5); }
+      50% { box-shadow: 0 0 35px rgba(255, 94, 0, 1); }
+      100% { box-shadow: 0 0 15px rgba(255, 94, 0, 0.5); }
+    }
+    /* Background Animation */
+    .bg-gradient-animated {
+      background: linear-gradient(135deg, #1a1a1a, #ff5e00, #1a1a1a);
+      background-size: 200% 200%;
+      animation: gradientShift 15s ease infinite;
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
     }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-tr from-orange-500 to-gray-900 text-white flex flex-col items-center justify-center px-4 py-10">
+<body class="min-h-screen bg-gradient-animated text-white font-sans overflow-hidden flex flex-col justify-between">
 
-  <h1 class="text-3xl font-bold mb-8 text-center">🎤 Research Assistant</h1>
+  <!-- Top Right Branding -->
+  <div class="absolute top-4 right-4 text-right z-10">
+    <h1 class="text-3xl font-extrabold tracking-tight text-orange-500 drop-shadow-lg">Research Sync</h1>
+    <p class="text-sm font-medium text-gray-300 mt-1">University of Pikeville</p>
+    <p class="text-xs text-gray-400">Chemistry Department</p>
+  </div>
 
-  <button id="recordBtn" class="w-24 h-24 rounded-full bg-black flex items-center justify-center mic-ambient focus:outline-none">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-orange-500" viewBox="0 0 20 20" fill="currentColor">
-      <path d="M10 2a2 2 0 00-2 2v6a2 2 0 104 0V4a2 2 0 00-2-2z" />
-      <path d="M5 10a5 5 0 0010 0h-2a3 3 0 11-6 0H5z" />
-      <path d="M10 18a7 7 0 007-7h-2a5 5 0 11-10 0H3a7 7 0 007 7z" />
-    </svg>
-  </button>
+  <!-- Main Content -->
+  <div class="flex-grow flex items-center justify-center relative">
+    <!-- Microphone Button -->
+    <button id="recordBtn" class="w-32 h-32 rounded-full bg-gradient-to-br from-black to-orange-600 mic-glow flex items-center justify-center focus:outline-none transform hover:scale-105 transition-transform duration-200">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-orange-400" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2a3 3 0 00-3 3v6a3 3 0 006 0V5a3 3 0 00-3-3z" />
+        <path d="M6 10a6 6 0 0012 0h-2a4 4 0 11-8 0H6z" />
+        <path d="M12 20a8 8 0 008-8h-2a6 6 0 11-12 0H4a8 8 0 008 8z" />
+      </svg>
+    </button>
 
-  <p id="status" class="mt-4 text-sm text-gray-300">Click to talk</p>
-  <audio id="responseAudio" controls class="mt-6 hidden"></audio>
+    <!-- Status and Response -->
+    <div class="absolute bottom-8 flex flex-col items-center space-y-4">
+      <p id="status" class="text-sm font-medium text-gray-300 tracking-wide">Click to Record</p>
+      <audio id="responseAudio" controls class="hidden w-64 bg-black/80 rounded-full p-2 text-orange-500"></audio>
+      <div id="assistantText" class="hidden max-w-md text-center text-sm text-gray-200 italic bg-black/50 p-4 rounded-lg shadow-lg"></div>
+    </div>
+  </div>
 
-  <div id="assistantText" class="mt-6 max-w-xl text-center text-sm text-gray-200 italic hidden"></div>
+  <!-- Bottom Left Tag -->
+  <div class="absolute bottom-4 left-4 z-10">
+    <p class="text-lg font-semibold text-orange-500 drop-shadow-md">Meat Research</p>
+  </div>
+
+  <!-- Background Overlay for Depth -->
+  <div class="absolute inset-0 pointer-events-none bg-black/20 z-0"></div>
+
+  <script>
+    // Add recording class to mic button dynamically
+    const recordBtn = document.getElementById('recordBtn');
+    recordBtn.addEventListener('click', () => {
+      if (!recordBtn.classList.contains('recording')) {
+        recordBtn.classList.add('recording');
+      } else {
+        recordBtn.classList.remove('recording');
+      }
+    });
+  </script>
 </body>
 </html>
