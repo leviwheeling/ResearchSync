@@ -20,7 +20,7 @@ const toggleRecordingState = (isRecording) => {
 };
 
 // Typewriter effect function
-const typeWriter = (text, element, speed = 80) => {
+const typeWriter = (text, element, speed = 72) => {
   element.textContent = '';
   let i = 0;
   const type = () => {
@@ -81,7 +81,7 @@ const startRecording = async () => {
         const assistantReply = response.headers.get('X-Transcript') || 'No transcript available';
         if (assistantText) {
           assistantText.classList.remove('hidden');
-          typeWriter(`"${assistantReply}"`, assistantText, 80);
+          typeWriter(`"${assistantReply}"`, assistantText, 72);
         }
 
         if (statusText) statusText.textContent = 'Done';
