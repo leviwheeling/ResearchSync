@@ -7,225 +7,142 @@
   <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime"></script>
   <script defer src="/static/app.js"></script>
   <style>
-    /* === CUSTOM ANIMATIONS (UNOCSS DOESN'T COVER THESE) === */
-    /* Cyberpunk Scanline Effect */
+    /* === CORE ANIMATIONS === */
+    /* Cyberpunk Scanlines */
     @keyframes scanline {
       0% { background-position: 0 0; }
       100% { background-position: 0 100vh; }
     }
-    .scanlines {
-      background: 
-        linear-gradient(to bottom, 
-          transparent 95%, 
-          rgba(255, 98, 0, 0.1) 96%,
-          transparent 97%
-        ),
-        linear-gradient(to right, 
-          rgba(0, 0, 0, 0.8) 0%, 
-          transparent 1%, 
-          transparent 99%, 
-          rgba(0, 0, 0, 0.8) 100%
-        );
-      background-size: 100% 8px, 6px 100%;
-      animation: scanline 0.8s linear infinite;
+    
+    /* Particle Animation */
+    @keyframes particle-float {
+      to { transform: translateY(-100vh) rotate(360deg); }
     }
-
-    /* Holographic Floating Effect */
-    @keyframes hologram-float {
-      0%, 100% { transform: translateY(0) rotateX(0); }
-      50% { transform: translateY(-10px) rotateX(5deg); }
-    }
-
-    /* Binary Rain (Data Matrix Effect) */
+    
+    /* Binary Rain */
     @keyframes binary-fall {
       to { transform: translateY(100vh); }
     }
-    .binary-char {
-      animation: binary-fall linear;
+    
+    /* === CRITICAL FIXES === */
+    /* Ensure all app.js-referenced elements exist */
+    #particles { 
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .particle {
+      position: absolute;
+      background: rgba(255, 98, 0, 0.3);
+      border-radius: 50%;
+      animation: particle-float linear;
       animation-duration: calc(15s + (var(--delay) * 5s));
+    }
+    
+    /* Recording State (matches app.js expectations) */
+    .recording {
+      animation: pulse 1.5s infinite ease-in-out;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 15px rgba(255, 98, 0, 0.5); }
+      50% { box-shadow: 0 0 35px rgba(255, 98, 0, 1); }
     }
   </style>
 </head>
-<body class="
-  min-h-screen overflow-hidden 
-  bg-black font-mono
-  flex flex-col justify-between
-  relative isolate
-">
-  <!-- === CYBERPUNK LAYERS === -->
-  <!-- Binary Rain Background -->
-  <div id="binaryRain" class="
-    absolute inset-0 overflow-hidden 
-    text-orange-400/10 text-xl
-    pointer-events-none z-0
-  "></div>
-
-  <!-- Holographic Grid Overlay -->
-  <div class="
-    absolute inset-0
-    bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48cGF0aCBkPSJNMCAwdjQwaDQwVjB6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjYyMDAiIHN0cm9rZS13aWR0aD0iMC4xIi8+PC9zdmc+')]
-    opacity-20 z-0
-  "></div>
-
+<body class="min-h-screen bg-black text-white font-mono overflow-hidden relative">
+  <!-- === CYBERPUNK BACKGROUND LAYERS === -->
+  <!-- Binary Rain (Enhanced) -->
+  <div id="binaryRain" class="absolute inset-0 overflow-hidden text-orange-400/10 text-xl pointer-events-none z-0"></div>
+  
+  <!-- Particle Container (MUST EXIST for app.js) -->
+  <div id="particles" class="absolute inset-0 pointer-events-none z-0"></div>
+  
+  <!-- Holographic Grid -->
+  <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48cGF0aCBkPSJNMCAwdjQwaDQwVjB6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjYyMDAiIHN0cm9rZS13aWR0aD0iMC4xIi8+PC9zdmc+')] opacity-20 z-0"></div>
+  
   <!-- Scanline Effect -->
   <div class="scanlines absolute inset-0 z-1 pointer-events-none"></div>
+  
+  <!-- Plasma Edge Glow -->
+  <div class="absolute inset-0 border-[8px] border-orange-500/10 pointer-events-none z-2 animate-[pulse_4s_ease-in-out_infinite]"></div>
 
-  <!-- === UI COMPONENTS === -->
-  <!-- Glowing Orange Border -->
-  <div class="
-    absolute inset-0 border-[6px] border-orange-500/20 
-    pointer-events-none z-2
-    animate-[pulse_4s_ease-in-out_infinite]
-  "></div>
-
-  <!-- Top Header -->
+  <!-- === MAIN UI === -->
   <header class="relative z-10 p-6 flex justify-between items-start">
     <div class="text-right">
-      <h1 class="
-        text-3xl font-bold
-        bg-clip-text text-transparent
-        bg-gradient-to-r from-orange-400 to-orange-600
-        drop-shadow-[0_0_8px_rgba(255,98,0,0.8)]
-      ">
-        UPIKEMEATRESEARCH<span class="text-white">.COM</span>
+      <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-orange-600 drop-shadow-[0_0_12px_rgba(255,98,0,0.9)] tracking-tighter">
+        UPIKEMEATRESEARCH<span class="text-white font-light">.COM</span>
       </h1>
-      <p class="text-orange-300/80 text-sm mt-1 tracking-widest">
-        OPEN AI NEURAL ARCHITECTURE v2.0
+      <p class="text-orange-300/80 text-sm mt-2 tracking-[0.3em]">
+        OPEN AI NUERAL NETWORK
       </p>
     </div>
     <div class="text-left">
-      <div class="
-        px-3 py-1 rounded-full
-        bg-gradient-to-r from-black/80 to-orange-900/80
-        border border-orange-500/50
-        text-orange-300 text-xs
-      ">
-        DESIGNED BY IVAN WHEELING   
+      <div class="px-4 py-1.5 rounded-full bg-black/80 border border-orange-500/50 text-orange-300 text-xs tracking-widest">
+        AI DESIGNED AND TRAINED BY IVAN WHEELING
       </div>
       <div class="mt-2 text-orange-200/60 text-xs">
         DESIGNED FOR THE FUTURE
-      </div>    
+      </div>
     </div>
   </header>
 
-  <!-- Main Interaction Zone -->
-  <main class="
-    flex-grow flex items-center justify-center
-    relative z-10
-  ">
-    <!-- Holographic Mic Interface -->
-    <div class="
-      relative w-64 h-64
-      flex items-center justify-center
-      group
-    ">
-      <!-- Outer Glow Ring -->
-      <div class="
-        absolute inset-0 rounded-full
-        bg-orange-500/10
-        border-2 border-orange-400/30
-        group-hover:border-orange-500/60
-        transition-all duration-500
-        scale-90 group-hover:scale-100
-      "></div>
-
-      <!-- Inner Hologram Disc -->
-      <div class="
-        absolute w-48 h-48 rounded-full
-        bg-[radial-gradient(ellipse_at_center,_rgba(255,98,0,0.2)_0%,_transparent_70%)]
-        backdrop-blur-sm
-        animate-[hologram-float_3s_ease-in-out_infinite]
-      "></div>
-
-      <!-- Mic Button -->
-      <button id="recordBtn" class="
-        relative z-20 w-24 h-24 rounded-full
-        bg-gradient-to-br from-black to-orange-900
-        border border-orange-500/50
-        flex items-center justify-center
-        shadow-[0_0_30px_5px_rgba(255,98,0,0.3)]
-        hover:shadow-[0_0_40px_10px_rgba(255,98,0,0.5)]
-        transition-all duration-300
-        group-hover:scale-110
-      ">
-        <svg xmlns="http://www.w3.org/2000/svg" class="
-          h-10 w-10 text-orange-400
-          drop-shadow-[0_0_8px_rgba(255,98,0,0.8)]
-        " viewBox="0 0 24 24" fill="currentColor">
+  <main class="flex-grow flex items-center justify-center relative z-10">
+    <!-- Holographic Voice Interface -->
+    <div class="relative w-72 h-72 flex items-center justify-center group">
+      <!-- Quantum Resonance Rings -->
+      <div class="absolute inset-0 rounded-full border-2 border-orange-500/20 group-hover:border-orange-500/50 transition-all duration-700 scale-90 group-hover:scale-100"></div>
+      <div class="absolute w-56 h-56 rounded-full border border-orange-500/10 group-hover:border-orange-500/30 transition-all duration-500"></div>
+      
+      <!-- Core Interaction Sphere -->
+      <button id="recordBtn" class="relative z-20 w-28 h-28 rounded-full bg-gradient-to-br from-black to-orange-900/90 border border-orange-500/50 flex items-center justify-center shadow-[0_0_40px_8px_rgba(255,98,0,0.4)] hover:shadow-[0_0_60px_15px_rgba(255,98,0,0.6)] transition-all duration-300 group-hover:scale-110">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-orange-400 drop-shadow-[0_0_12px_rgba(255,98,0,0.9)]" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2a3 3 0 00-3 3v6a3 3 0 006 0V5a3 3 0 00-3-3z" />
           <path d="M6 10a6 6 0 0012 0h-2a4 4 0 11-8 0H6z" />
           <path d="M12 20a8 8 0 008-8h-2a6 6 0 11-12 0H4a8 8 0 008 8z" />
         </svg>
       </button>
-
-      <!-- Active Recording State (Hidden by Default) -->
-      <div class="
-        absolute -inset-4 rounded-full
-        border-4 border-orange-500/0
-        pointer-events-none
-        transition-all duration-700
-        recording:border-orange-500/80
-        recording:animate-[pulse_1.5s_ease-in-out_infinite]
-      "></div>
+      
+      <!-- Active Pulse Effect (matches app.js recording class) -->
+      <div class="absolute -inset-6 rounded-full border-4 border-orange-500/0 pointer-events-none transition-all duration-700 recording:border-orange-500/70 recording:animate-[pulse_1.5s_ease-in-out_infinite]"></div>
     </div>
 
-    <!-- Status Console -->
-    <div class="
-      absolute bottom-10 left-0 right-0
-      flex flex-col items-center
-      px-6
-    ">
-      <div id="status" class="
-        px-4 py-2 rounded-full
-        bg-black/70
-        border border-orange-500/30
-        text-orange-300 text-sm
-        mb-4
-      ">
-        [STATUS] HOLD SPACE TO RECORD
+    <!-- Status Console (Enhanced) -->
+    <div class="absolute bottom-10 left-0 right-0 flex flex-col items-center px-6 space-y-4">
+      <div id="status" class="px-5 py-2.5 rounded-full bg-black/80 border border-orange-500/30 text-orange-300 text-sm tracking-wider shadow-lg">
+        [STATUS] HOLD SPACEBAR TO INITIATE RECORDING
       </div>
-
-      <!-- Thinking Indicator -->
-      <div id="thinking" class="
-        hidden items-center gap-1
-        text-orange-400
-        mb-4
-      ">
-        <span class="inline-block w-2 h-2 rounded-full bg-orange-400 animate-bounce"></span>
-        <span class="inline-block w-2 h-2 rounded-full bg-orange-400 animate-bounce delay-100"></span>
-        <span class="inline-block w-2 h-2 rounded-full bg-orange-400 animate-bounce delay-200"></span>
-        <span class="text-xs ml-2">PROCESSING USER INPUT...</span>
+      
+      <div id="thinking" class="hidden items-center space-x-2 text-orange-400">
+        <div class="flex space-x-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-orange-400 animate-bounce"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-orange-400 animate-bounce delay-75"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-orange-400 animate-bounce delay-150"></span>
+        </div>
+        <span class="text-xs tracking-widest">ANALYZING USER INPUT...</span>
       </div>
-
-      <!-- Response Output -->
-      <div id="assistantText" class="
-        hidden max-w-md w-full
-        p-4 rounded-lg
-        bg-gradient-to-b from-black/80 to-orange-900/50
-        border border-orange-500/30
-        text-orange-100 text-sm
-        shadow-[inset_0_0_20px_rgba(255,98,0,0.3)]
-      "></div>
+      
+      <div id="assistantText" class="hidden max-w-xl w-full p-5 rounded-xl bg-gradient-to-b from-black/90 to-orange-900/40 border border-orange-500/30 text-orange-100 text-sm leading-relaxed shadow-[inset_0_0_30px_rgba(255,98,0,0.2)] backdrop-blur-sm"></div>
+      
+      <audio id="responseAudio" controls class="hidden w-full max-w-md bg-black/80 rounded-full p-3 border border-orange-500/20"></audio>
     </div>
   </main>
 
-  <!-- Footer Signature -->
   <footer class="relative z-10 p-6 text-center">
-    <div class="
-      inline-block px-3 py-1
-      bg-black/50
-      border border-orange-500/20
-      rounded-full
-      text-orange-300/60 text-xs
-      tracking-widest
-    ">
-      SYSTEM CONNECTED • SERVER ONLINE
+    <div class="inline-flex items-center px-4 py-2 bg-black/50 border border-orange-500/20 rounded-full text-orange-300/70 text-xs tracking-widest space-x-2">
+      <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+      <span>SYSTEM ONLINE</span>
+      <span>•</span>
+      <span>SERVER ACTIVE</span>
+      <span>•</span>
+      <span>v3.0.1</span>
     </div>
   </footer>
 
-  <!-- === DYNAMIC EFFECTS (NO JS REQUIRED) === -->
+  <!-- === DYNAMIC SYSTEMS INIT === -->
   <script>
-    // UnoCSS Config
+    // UnoCSS Configuration
     window.__unocss = {
       presets: [
         "@unocss/preset-uno",
@@ -234,32 +151,35 @@
       ],
       theme: {
         colors: {
-          primary: {
+          orange: {
             400: '#ff8c00',
             500: '#ff6200',
             600: '#e04e00'
           }
         }
-      },
-      shortcuts: {
-        'neumorphic': 'shadow-[inset_0_-2px_4px_rgba(255,255,255,0.1),inset_0_2px_4px_rgba(0,0,0,0.8)]',
       }
     };
 
-    // Binary Rain Effect (Pure CSS)
+    // Initialize Binary Rain
     document.addEventListener('DOMContentLoaded', () => {
+      // Binary Matrix
       const binaryRain = document.getElementById('binaryRain');
-      const chars = ['0', '1', '█', '░', '▒', '▓'];
-      
-      for (let i = 0; i < 100; i++) {
+      const chars = ['0', '1', '⎔', '⎖', '⎗', '⎘', '█', '▄', '▀'];
+      for (let i = 0; i < 150; i++) {
         const char = document.createElement('div');
-        char.className = 'binary-char absolute top-0 opacity-70';
+        char.className = 'binary-char absolute top-0 opacity-80';
         char.style.left = `${Math.random() * 100}%`;
         char.style.setProperty('--delay', Math.random());
-        char.style.animationDelay = `${Math.random() * 5}s`;
+        char.style.animationDelay = `${Math.random() * 8}s`;
         char.textContent = chars[Math.floor(Math.random() * chars.length)];
         binaryRain.appendChild(char);
       }
+      
+      // Sync with app.js recording state
+      document.addEventListener('recordingStateChange', (e) => {
+        const intensity = e.detail.isRecording ? '0.3' : '0.1';
+        document.getElementById('binaryRain').style.opacity = intensity;
+      });
     });
   </script>
 </body>
