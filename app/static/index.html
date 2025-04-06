@@ -147,7 +147,8 @@
       <div class="absolute -inset-6 rounded-full border-4 border-orange-500/0 pointer-events-none transition-all duration-700 recording:border-orange-500/70 recording:animate-[pulse_1.5s_ease-in-out_infinite]"></div>
     </div>
 
-    <div class="absolute bottom-10 left-0 right-0 flex flex-col items-center px-6 space-y-4">
+    <!-- Status and Thinking (Fixed Below Mic) -->
+    <div class="absolute top-1/2 left-0 right-0 mt-40 flex flex-col items-center px-6 space-y-4">
       <div id="status" class="px-5 py-2.5 rounded-full bg-black/80 border border-orange-500/30 text-orange-300 text-sm tracking-wider shadow-lg">
         [STATUS] HOLD SPACEBAR TO INITIATE RECORDING
       </div>
@@ -160,15 +161,17 @@
         </div>
         <span class="text-xs tracking-widest">ANALYZING USER INPUT...</span>
       </div>
-      
-      <div class="flex flex-col items-center space-y-4">
-        <audio id="responseAudio" controls class="hidden"></audio>
-        <div id="assistantText" class="hidden max-w-xl w-full p-5 rounded-xl bg-gradient-to-b from-black/90 to-orange-900/40 border border-orange-500/30 text-orange-100 text-sm leading-relaxed shadow-[inset_0_0_30px_rgba(255,98,0,0.2)] backdrop-blur-sm text-center animate-[slide-down_0.5s_ease-out]"></div>
-      </div>
+    </div>
+
+    <!-- Response Area (Positioned Lower) -->
+    <div class="absolute bottom-24 left-0 right-0 flex flex-col items-center px-6 space-y-4">
+      <audio id="responseAudio" controls class="hidden"></audio>
+      <div id="assistantText" class="hidden max-w-xl w-full p-5 rounded-xl bg-gradient-to-b from-black/90 to-orange-900/40 border border-orange-500/30 text-orange-100 text-sm leading-relaxed shadow-[inset_0_0_30px_rgba(255,98,0,0.2)] backdrop-blur-sm text-center animate-[slide-down_0.5s_ease-out]"></div>
     </div>
   </main>
 
-  <footer class="relative z-10 p-6 text-center">
+  <!-- Footer (Fixed at Bottom) -->
+  <footer class="fixed bottom-0 left-0 right-0 z-10 p-6 text-center">
     <div class="inline-flex items-center px-4 py-2 bg-black/50 border border-orange-500/20 rounded-full text-orange-300/70 text-xs tracking-widest space-x-2">
       <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
       <span>SYSTEM ONLINE</span>

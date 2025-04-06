@@ -24,20 +24,16 @@ const toggleRecordingState = (isRecording) => {
 
 // Typewriter effect function
 const typeWriter = (text, element, speed = 50) => {
-  return new Promise((resolve) => {
-    element.textContent = '';
-    let i = 0;
-    const type = () => {
-      if (i < text.length) {
-        element.textContent += text.charAt(i);
-        i++;
-        setTimeout(type, speed);
-      } else {
-        resolve();
-      }
-    };
-    type();
-  });
+  element.textContent = '';
+  let i = 0;
+  const type = () => {
+    if (i < text.length) {
+      element.textContent += text.charAt(i);
+      i++;
+      setTimeout(type, speed);
+    }
+  };
+  type();
 };
 
 // Recording logic
@@ -79,14 +75,15 @@ const startRecording = async () => {
 
         const assistantReply = response.headers.get('X-Transcript') || 'No transcript available';
         assistantText.classList.remove('hidden');
-        // Run typewriter effect without awaiting it, so audio plays immediately
-        typeWriter(`"${assistantReply}"`, assistantText, 50);
+        // Run typewriter effect independently
+        setTimeout(() => typeWriter(`"${assistantReply}"`, assistantText, 50), 0);
 
+        // Play audio immediately
         const audioData = await response.blob();
         const audioUrl = URL.createObjectURL(audioData);
         responseAudio.src = audioUrl;
         responseAudio.classList.remove('hidden');
-        await responseAudio.play();
+        responseAudio.play().catch(err => console.error('Audio playback failed:', err));
 
         statusText.textContent = 'Done';
       };
