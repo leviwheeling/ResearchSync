@@ -5,27 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NEO-MEAT AI | UPIKE</title>
   <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime"></script>
-  <script defer src="/static/app.js"></script>
   <style>
     /* === CORE ANIMATIONS === */
-    /* Cyberpunk Scanlines */
     @keyframes scanline {
       0% { background-position: 0 0; }
       100% { background-position: 0 100vh; }
     }
     
-    /* Particle Animation */
     @keyframes particle-float {
       to { transform: translateY(-100vh) rotate(360deg); }
     }
     
-    /* Binary Rain */
     @keyframes binary-fall {
       to { transform: translateY(100vh); }
     }
     
     /* === CRITICAL FIXES === */
-    /* Ensure all app.js-referenced elements exist */
     #particles { 
       position: absolute;
       inset: 0;
@@ -38,34 +33,41 @@
       background: rgba(255, 98, 0, 0.3);
       border-radius: 50%;
       animation: particle-float linear;
-      animation-duration: calc(15s + (var(--delay) * 5s));
+      /* Match app.js random duration between 5-10s */
+      animation-duration: inherit;
     }
     
-    /* Recording State (matches app.js expectations) */
     .recording {
       animation: pulse 1.5s infinite ease-in-out;
     }
+    
+    .hidden {
+      display: none;
+    }
+    
+    /* Binary Rain Characters */
+    .binary-char {
+      animation: binary-fall linear 8s infinite;
+    }
+    
     @keyframes pulse {
       0%, 100% { box-shadow: 0 0 15px rgba(255, 98, 0, 0.5); }
       50% { box-shadow: 0 0 35px rgba(255, 98, 0, 1); }
+    }
+
+    .scanlines {
+      background: linear-gradient(to bottom, rgba(255,255,255,0) 50%, rgba(255,255,255,0.03) 50%);
+      background-size: 100% 4px;
+      animation: scanline 8s linear infinite;
     }
   </style>
 </head>
 <body class="min-h-screen bg-black text-white font-mono overflow-hidden relative">
   <!-- === CYBERPUNK BACKGROUND LAYERS === -->
-  <!-- Binary Rain (Enhanced) -->
   <div id="binaryRain" class="absolute inset-0 overflow-hidden text-orange-400/10 text-xl pointer-events-none z-0"></div>
-  
-  <!-- Particle Container (MUST EXIST for app.js) -->
   <div id="particles" class="absolute inset-0 pointer-events-none z-0"></div>
-  
-  <!-- Holographic Grid -->
   <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48cGF0aCBkPSJNMCAwdjQwaDQwVjB6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjYyMDAiIHN0cm9rZS13aWR0aD0iMC4xIi8+PC9zdmc+')] opacity-20 z-0"></div>
-  
-  <!-- Scanline Effect -->
   <div class="scanlines absolute inset-0 z-1 pointer-events-none"></div>
-  
-  <!-- Plasma Edge Glow -->
   <div class="absolute inset-0 border-[8px] border-orange-500/10 pointer-events-none z-2 animate-[pulse_4s_ease-in-out_infinite]"></div>
 
   <!-- === MAIN UI === -->
@@ -75,7 +77,7 @@
         UPIKEMEATRESEARCH<span class="text-white font-light">.COM</span>
       </h1>
       <p class="text-orange-300/80 text-sm mt-2 tracking-[0.3em]">
-        OPEN AI NUERAL NETWORK
+        OPEN AI NEURAL NETWORK
       </p>
     </div>
     <div class="text-left">
@@ -89,13 +91,10 @@
   </header>
 
   <main class="flex-grow flex items-center justify-center relative z-10">
-    <!-- Holographic Voice Interface -->
     <div class="relative w-72 h-72 flex items-center justify-center group">
-      <!-- Quantum Resonance Rings -->
       <div class="absolute inset-0 rounded-full border-2 border-orange-500/20 group-hover:border-orange-500/50 transition-all duration-700 scale-90 group-hover:scale-100"></div>
       <div class="absolute w-56 h-56 rounded-full border border-orange-500/10 group-hover:border-orange-500/30 transition-all duration-500"></div>
       
-      <!-- Core Interaction Sphere -->
       <button id="recordBtn" class="relative z-20 w-28 h-28 rounded-full bg-gradient-to-br from-black to-orange-900/90 border border-orange-500/50 flex items-center justify-center shadow-[0_0_40px_8px_rgba(255,98,0,0.4)] hover:shadow-[0_0_60px_15px_rgba(255,98,0,0.6)] transition-all duration-300 group-hover:scale-110">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-orange-400 drop-shadow-[0_0_12px_rgba(255,98,0,0.9)]" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2a3 3 0 00-3 3v6a3 3 0 006 0V5a3 3 0 00-3-3z" />
@@ -104,11 +103,9 @@
         </svg>
       </button>
       
-      <!-- Active Pulse Effect (matches app.js recording class) -->
       <div class="absolute -inset-6 rounded-full border-4 border-orange-500/0 pointer-events-none transition-all duration-700 recording:border-orange-500/70 recording:animate-[pulse_1.5s_ease-in-out_infinite]"></div>
     </div>
 
-    <!-- Status Console (Enhanced) -->
     <div class="absolute bottom-10 left-0 right-0 flex flex-col items-center px-6 space-y-4">
       <div id="status" class="px-5 py-2.5 rounded-full bg-black/80 border border-orange-500/30 text-orange-300 text-sm tracking-wider shadow-lg">
         [STATUS] HOLD SPACEBAR TO INITIATE RECORDING
@@ -162,25 +159,30 @@
 
     // Initialize Binary Rain
     document.addEventListener('DOMContentLoaded', () => {
-      // Binary Matrix
       const binaryRain = document.getElementById('binaryRain');
-      const chars = ['0', '1', '⎔', '⎖', '⎗', '⎘', '█', '▄', '▀'];
-      for (let i = 0; i < 150; i++) {
-        const char = document.createElement('div');
-        char.className = 'binary-char absolute top-0 opacity-80';
-        char.style.left = `${Math.random() * 100}%`;
-        char.style.setProperty('--delay', Math.random());
-        char.style.animationDelay = `${Math.random() * 8}s`;
-        char.textContent = chars[Math.floor(Math.random() * chars.length)];
-        binaryRain.appendChild(char);
+      if (binaryRain) {
+        const chars = ['0', '1', '⎔', '⎖', '⎗', '⎘', '█', '▄', '▀'];
+        for (let i = 0; i < 150; i++) {
+          const char = document.createElement('div');
+          char.className = 'binary-char absolute top-0 opacity-80';
+          char.style.left = `${Math.random() * 100}%`;
+          char.style.setProperty('--delay', Math.random());
+          char.style.animationDelay = `${Math.random() * 8}s`;
+          char.textContent = chars[Math.floor(Math.random() * chars.length)];
+          binaryRain.appendChild(char);
+        }
       }
       
       // Sync with app.js recording state
       document.addEventListener('recordingStateChange', (e) => {
-        const intensity = e.detail.isRecording ? '0.3' : '0.1';
-        document.getElementById('binaryRain').style.opacity = intensity;
+        const binaryRainElement = document.getElementById('binaryRain');
+        if (binaryRainElement) {
+          const intensity = e.detail.isRecording ? '0.3' : '0.1';
+          binaryRainElement.style.opacity = intensity;
+        }
       });
     });
   </script>
+  <script defer src="/static/app.js"></script>
 </body>
 </html>
