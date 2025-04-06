@@ -19,6 +19,11 @@
     @keyframes binary-fall {
       to { transform: translateY(100vh); }
     }
+
+    @keyframes slide-down {
+      0% { transform: translateY(-20px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
     
     /* === CRITICAL FIXES === */
     #particles { 
@@ -157,8 +162,8 @@
       </div>
       
       <div class="flex flex-col items-center space-y-4">
-        <div id="assistantText" class="hidden max-w-xl w-full p-5 rounded-xl bg-gradient-to-b from-black/90 to-orange-900/40 border border-orange-500/30 text-orange-100 text-sm leading-relaxed shadow-[inset_0_0_30px_rgba(255,98,0,0.2)] backdrop-blur-sm text-center"></div>
         <audio id="responseAudio" controls class="hidden"></audio>
+        <div id="assistantText" class="hidden max-w-xl w-full p-5 rounded-xl bg-gradient-to-b from-black/90 to-orange-900/40 border border-orange-500/30 text-orange-100 text-sm leading-relaxed shadow-[inset_0_0_30px_rgba(255,98,0,0.2)] backdrop-blur-sm text-center animate-[slide-down_0.5s_ease-out]"></div>
       </div>
     </div>
   </main>

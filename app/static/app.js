@@ -79,8 +79,8 @@ const startRecording = async () => {
 
         const assistantReply = response.headers.get('X-Transcript') || 'No transcript available';
         assistantText.classList.remove('hidden');
-        // Add typewriter effect here
-        await typeWriter(`"${assistantReply}"`, assistantText, 50);
+        // Run typewriter effect without awaiting it, so audio plays immediately
+        typeWriter(`"${assistantReply}"`, assistantText, 50);
 
         const audioData = await response.blob();
         const audioUrl = URL.createObjectURL(audioData);
