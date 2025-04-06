@@ -2,23 +2,20 @@ const recordBtn = document.getElementById('recordBtn');
 const statusText = document.getElementById('status');
 const responseAudio = document.getElementById('responseAudio');
 const assistantText = document.getElementById('assistantText');
-const thinking = document.getElementById('thinking');
 
 let mediaRecorder;
 let audioChunks = [];
 const sessionId = sessionStorage.getItem('session_id') || crypto.randomUUID();
 sessionStorage.setItem('session_id', sessionId);
 
-// Mic button animation and thinking toggle
+// Mic button animation and status toggle
 const toggleRecordingState = (isRecording) => {
   if (isRecording) {
     recordBtn.classList.add('recording');
-    statusText.classList.add('hidden');
-    thinking.classList.remove('hidden');
+    if (statusText) statusText.classList.add('hidden');
   } else {
     recordBtn.classList.remove('recording');
-    thinking.classList.add('hidden');
-    statusText.classList.remove('hidden');
+    if (statusText) statusText.classList.remove('hidden');
   }
 };
 
@@ -52,9 +49,8 @@ const startRecording = async () => {
         formData.append('file', audioBlob, 'recording.webm');
         formData.append('session_id', sessionId);
 
-        statusText.textContent = 'Thinking...';
-        assistantText.classList.add('hidden');
-        responseAudio.classList.add('hidden');
+        if (statusText) statusText.textContent = 'Thinking...';
+        if (assistantText) assistantText.classList.add('hidden');
 
         const response = await fetch('/chat/audio', {
           method: 'POST',
@@ -73,19 +69,22 @@ const startRecording = async () => {
           throw new Error(`Expected audio, got: ${errText}`);
         }
 
-        const assistantReply = response.headers.get('X-Transcript') || 'No transcript available';
-        assistantText.classList.remove('hidden');
-        // Run typewriter effect independently
-        setTimeout(() => typeWriter(`"${assistantReply}"`, assistantText, 50), 0);
-
-        // Play audio immediately
+        // Start audio playback immediately
         const audioData = await response.blob();
         const audioUrl = URL.createObjectURL(audioData);
-        responseAudio.src = audioUrl;
-        responseAudio.classList.remove('hidden');
-        responseAudio.play().catch(err => console.error('Audio playback failed:', err));
+        if (responseAudio) {
+          responseAudio.src = audioUrl;
+          responseAudio.play().catch(err => console.error('Audio playback failed:', err));
+        }
 
-        statusText.textContent = 'Done';
+        // Run typewriter effect in parallel
+        const assistantReply = response.headers.get('X-Transcript') || 'No transcript available';
+        if (assistantText) {
+          assistantText.classList.remove('hidden');
+          typeWriter(`"${assistantReply}"`, assistantText, 50);
+        }
+
+        if (statusText) statusText.textContent = 'Done';
       };
 
       mediaRecorder.start();
@@ -93,7 +92,7 @@ const startRecording = async () => {
     }
   } catch (err) {
     console.error('Error:', err);
-    statusText.textContent = `Error: ${err.message}`;
+    if (statusText) statusText.textContent = `Error: ${err.message}`;
     toggleRecordingState(false);
   }
 };

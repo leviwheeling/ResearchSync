@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NEO-MEAT AI | UPIKE</title>
+  <title>DESIGNED BY IVAN WHEELING | UPIKE</title>
   <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime"></script>
   <style>
     /* === CORE ANIMATIONS === */
@@ -63,44 +63,6 @@
       background-size: 100% 4px;
       animation: scanline 8s linear infinite;
     }
-
-    /* Custom Audio Player Styling */
-    audio {
-      width: 100%;
-      max-width: 400px;
-      background: transparent;
-      border-radius: 50px;
-      padding: 5px;
-      border: 1px solid rgba(255, 98, 0, 0.3);
-    }
-
-    audio::-webkit-media-controls-panel {
-      background: linear-gradient(to right, rgba(255, 98, 0, 0.1), rgba(0, 0, 0, 0.8));
-      border-radius: 50px;
-      color: #ff6200;
-    }
-
-    audio::-webkit-media-controls-play-button,
-    audio::-webkit-media-controls-volume-slider,
-    audio::-webkit-media-controls-mute-button {
-      filter: hue-rotate(30deg) brightness(1.2);
-    }
-
-    audio::-webkit-media-controls-current-time-display,
-    audio::-webkit-media-controls-time-remaining-display {
-      color: #ff6200;
-      font-family: monospace;
-    }
-
-    audio::-webkit-media-controls-timeline {
-      background: rgba(255, 98, 0, 0.2);
-      border-radius: 5px;
-    }
-
-    audio::-webkit-media-controls-timeline::-webkit-slider-thumb {
-      background: #ff6200;
-      border-radius: 50%;
-    }
   </style>
 </head>
 <body class="min-h-screen bg-black text-white font-mono overflow-hidden relative">
@@ -147,26 +109,17 @@
       <div class="absolute -inset-6 rounded-full border-4 border-orange-500/0 pointer-events-none transition-all duration-700 recording:border-orange-500/70 recording:animate-[pulse_1.5s_ease-in-out_infinite]"></div>
     </div>
 
-    <!-- Status and Thinking (Fixed Below Mic) -->
-    <div class="absolute top-1/2 left-0 right-0 mt-40 flex flex-col items-center px-6 space-y-4">
+    <!-- Status (Fixed Below Mic) -->
+    <div class="absolute top-1/2 left-0 right-0 mt-20 flex flex-col items-center px-6 space-y-4">
       <div id="status" class="px-5 py-2.5 rounded-full bg-black/80 border border-orange-500/30 text-orange-300 text-sm tracking-wider shadow-lg">
         [STATUS] HOLD SPACEBAR TO INITIATE RECORDING
       </div>
-      
-      <div id="thinking" class="hidden items-center space-x-2 text-orange-400">
-        <div class="flex space-x-1.5">
-          <span class="w-2.5 h-2.5 rounded-full bg-orange-400 animate-bounce"></span>
-          <span class="w-2.5 h-2.5 rounded-full bg-orange-400 animate-bounce delay-75"></span>
-          <span class="w-2.5 h-2.5 rounded-full bg-orange-400 animate-bounce delay-150"></span>
-        </div>
-        <span class="text-xs tracking-widest">ANALYZING USER INPUT...</span>
-      </div>
     </div>
 
-    <!-- Response Area (Positioned Lower) -->
-    <div class="absolute bottom-24 left-0 right-0 flex flex-col items-center px-6 space-y-4">
-      <audio id="responseAudio" controls class="hidden"></audio>
+    <!-- Response Area (Near Bottom) -->
+    <div class="absolute bottom-16 left-0 right-0 flex flex-col items-center px-6 space-y-4">
       <div id="assistantText" class="hidden max-w-xl w-full p-5 rounded-xl bg-gradient-to-b from-black/90 to-orange-900/40 border border-orange-500/30 text-orange-100 text-sm leading-relaxed shadow-[inset_0_0_30px_rgba(255,98,0,0.2)] backdrop-blur-sm text-center animate-[slide-down_0.5s_ease-out]"></div>
+      <audio id="responseAudio" class="hidden"></audio>
     </div>
   </main>
 
