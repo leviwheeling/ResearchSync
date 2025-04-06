@@ -81,7 +81,7 @@ const startRecording = async () => {
         const assistantReply = response.headers.get('X-Transcript') || 'No transcript available';
         if (assistantText) {
           assistantText.classList.remove('hidden');
-          typeWriter(`"${assistantReply}"`, assistantText, 50);
+          typeWriter(`"${assistantReply}"`, assistantText, 80);
         }
 
         if (statusText) statusText.textContent = 'Done';
