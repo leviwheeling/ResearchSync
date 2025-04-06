@@ -20,7 +20,7 @@ const toggleRecordingState = (isRecording) => {
 };
 
 // Typewriter effect function
-const typeWriter = (text, element, speed = 50) => {
+const typeWriter = (text, element, speed = 80) => {
   element.textContent = '';
   let i = 0;
   const type = () => {
