@@ -22,6 +22,24 @@ const toggleRecordingState = (isRecording) => {
   }
 };
 
+// Typewriter effect function
+const typeWriter = (text, element, speed = 50) => {
+  return new Promise((resolve) => {
+    element.textContent = '';
+    let i = 0;
+    const type = () => {
+      if (i < text.length) {
+        element.textContent += text.charAt(i);
+        i++;
+        setTimeout(type, speed);
+      } else {
+        resolve();
+      }
+    };
+    type();
+  });
+};
+
 // Recording logic
 const startRecording = async () => {
   try {
@@ -60,8 +78,9 @@ const startRecording = async () => {
         }
 
         const assistantReply = response.headers.get('X-Transcript') || 'No transcript available';
-        assistantText.textContent = `"${assistantReply}"`;
         assistantText.classList.remove('hidden');
+        // Add typewriter effect here
+        await typeWriter(`"${assistantReply}"`, assistantText, 50);
 
         const audioData = await response.blob();
         const audioUrl = URL.createObjectURL(audioData);

@@ -156,7 +156,6 @@
         <span class="text-xs tracking-widest">ANALYZING USER INPUT...</span>
       </div>
       
-      <!-- Adjusted layout to prevent overlap -->
       <div class="flex flex-col items-center space-y-4">
         <div id="assistantText" class="hidden max-w-xl w-full p-5 rounded-xl bg-gradient-to-b from-black/90 to-orange-900/40 border border-orange-500/30 text-orange-100 text-sm leading-relaxed shadow-[inset_0_0_30px_rgba(255,98,0,0.2)] backdrop-blur-sm text-center"></div>
         <audio id="responseAudio" controls class="hidden"></audio>
@@ -219,36 +218,6 @@
           binaryRainElement.style.opacity = intensity;
         }
       });
-
-      // Typewriter effect for assistantText
-      const assistantText = document.getElementById('assistantText');
-      let originalText = '';
-      let currentIndex = 0;
-
-      const typeText = () => {
-        if (currentIndex < originalText.length) {
-          assistantText.textContent = originalText.substring(0, currentIndex + 1);
-          currentIndex++;
-          setTimeout(typeText, 50); // Adjust speed of typing here
-        }
-      };
-
-      // Observe changes to assistantText to trigger typewriter effect
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.type === 'childList' || mutation.type === 'characterData') {
-            const newText = assistantText.textContent;
-            if (newText !== originalText && !assistantText.classList.contains('hidden')) {
-              originalText = newText;
-              currentIndex = 0;
-              assistantText.textContent = '';
-              typeText();
-            }
-          }
-        });
-      });
-
-      observer.observe(assistantText, { childList: true, characterData: true, subtree: true });
     });
   </script>
   <script defer src="/static/app.js"></script>
